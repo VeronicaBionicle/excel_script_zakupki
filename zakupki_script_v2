@@ -1,0 +1,70 @@
+Sub Фильтр_закупок()
+    ' Проверка названия файла, чтобы не запускать лишний раз
+    fileName = ActiveWorkbook.Name
+    
+    If Not (fileName Like "*Отчет по фильтру закупки*") Then
+        MsgBox "Открыт не тот файл!"
+        Exit Sub
+    End If
+    
+    ' Удаление первых строк
+    Rows("1:3").Select
+    Selection.Delete Shift:=xlUp
+    ' Форматирование строк
+    Columns("A:B").Font.Color = RGB(0, 0, 0)
+    Rows.RowHeight = 25
+    Columns("A:A").EntireColumn.AutoFit
+    Columns("E:E").ColumnWidth = 21
+    Columns("D:D").ColumnWidth = 14
+    Columns("C:C").ColumnWidth = 15
+    Columns("B:B").ColumnWidth = 115
+    Columns("G:G").Select
+    Selection.Delete Shift:=xlToLeft
+    ' Удаление заранее известной информации о месте проведения закупок
+    Columns("G:G").Select
+    deleteArray = Array("Российская федерация, ", "Хабаровский край ", "Хабаровский край, ")
+    For Each Word In deleteArray
+        Selection.Replace What:=Word, Replacement:="", LookAt _
+            :=xlPart, SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+            ReplaceFormat:=False
+    Next Word
+    ' Замена капса и добавление аббревиатур
+    Columns("F:F").Select
+    beforeReplaceArray = Array("  ", "ХАБАРОВСКОГО КРАЯ", "КРАЕВОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ", _
+    "КРАЕВОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ", "КОМИТЕТ ГОСУДАРСТВЕННОГО ЗАКАЗА ПРАВИТЕЛЬСТВА", _
+    "ГОРОДСКАЯ", "БОЛЬНИЦА", "ПОЛИКЛИНИКА", "КРАЕВОЕ ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ", "АДМИНИСТРАЦИЯ")
+    afterReplaceArray = Array(" ", "Хабаровского края", "КГБУЗ", "КГБУ", "Комитет государственного заказа Правительства", _
+    "Городская", "больница", "поликлиника", "КГКУ", "Администрация")
+    replaceSize = UBound(beforeReplaceArray) - LBound(beforeReplaceArray)
+    For I = 0 To replaceSize
+        Selection.Replace What:=beforeReplaceArray(I), Replacement:=afterReplaceArray(I), _
+        LookAt:=xlPart, SearchOrder:=xlByRows, MatchCase:=False, _
+        SearchFormat:=False, ReplaceFormat:=False
+    Next I
+    ' Выделение цветом лишних закупок
+    Columns("B:B").Select
+    selectionArray = Array("медицин", "охран", "стерилиз", "экспертиз", "фарм", "препарат", "лаборат", "электрич", "электрооб", "рентген", "коагул", "кардиограф", _
+    "одежд", "стериль", "гематолог", "пожарн", "разработк", "анализ", "оплод", "белья", "акушер", "пациент", "экстрапоральн", "диализ", "реагент", "хроматограф", _
+    "оксиген", "лечени", "лечеб", "крови", "кровь", "инфуз", "сосуд", "плазма", "томограф", "автомоб", "строит", "эпидемич", "аква", "автотр", "эндоскоп", "травм", "холодильн")
+    For Each Word In selectionArray
+        Selection.FormatConditions.Add Type:=xlTextString, String:=Word, _
+            TextOperator:=xlContains
+        Selection.FormatConditions(Selection.FormatConditions.Count).SetFirstPriority
+        With Selection.FormatConditions(1).Interior
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorAccent6
+            .TintAndShade = 0.6
+        End With
+        Selection.FormatConditions(1).StopIfTrue = True
+    Next Word
+    
+    ' Получаем папку и полный путь до файла
+    curPath = ActiveWorkbook.Path
+    fileName = curPath & Application.PathSeparator & fileName
+    
+    ' Генерируем новое имя файла
+    newFileName = curPath & Application.PathSeparator & "Закупки " & Date & ".xlsx"
+    
+    ' Сохранение отформатированного файла
+    ActiveWorkbook.SaveAs fileName:=newFileName, FileFormat:=xlWorkbookDefault, ReadOnlyRecommended:=False
+End Sub
